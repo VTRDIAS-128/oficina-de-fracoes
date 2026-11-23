@@ -1,0 +1,6 @@
+{
+  "name": "Oficina das Frações",
+  "description": "Jogo educativo interativo para aprender a adicionar e subtrair frações com níveis progressivos de dificuldade e feedback detalhado de desempenho.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
