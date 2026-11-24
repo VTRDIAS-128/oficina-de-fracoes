@@ -33,7 +33,7 @@ import {
   saveLevelStats,
 } from './game/fractions';
 import { soundEngine } from './game/audio';
-import { fetchClasses, saveGameRecord } from './game/recordsApi';
+import { saveGameRecord } from './game/recordsApi';
 import { AvatarBadge } from './components/Avatars';
 import { FractionDisplay } from './components/FractionDisplay';
 import { FractionVisual, VisualMode } from './components/FractionVisual';
@@ -94,7 +94,6 @@ export default function App() {
   } | null>(null);
 
   // Student Profile & Teacher / Classroom Integration
-  const [availableClasses, setAvailableClasses] = useState<string[]>(['6.º A', '6.º B', '6.º C']);
   const [urlTurma, setUrlTurma] = useState<string>('');
   const [studentPreview, setStudentPreview] = useState<boolean>(false);
   const [previewTurma, setPreviewTurma] = useState<string>('');
@@ -107,7 +106,6 @@ export default function App() {
   const questionStartRef = useRef<number>(Date.now());
 
   useEffect(() => {
-    fetchClasses().then(setAvailableClasses);
     const params = new URLSearchParams(window.location.search);
     const turmaParam = params.get('turma')?.trim() ?? '';
     const nivelParam = Number(params.get('nivel'));
@@ -600,7 +598,6 @@ export default function App() {
         {showTeacherPanel && !urlTurma && (
           <TeacherPanel
             onClose={() => setShowTeacherPanel(false)}
-            onClassesUpdated={setAvailableClasses}
             onTestAsStudent={(turma, suggestedLevel) => {
               setShowTeacherPanel(false);
               setPreviewTurma(turma);
@@ -621,7 +618,6 @@ export default function App() {
         level={selectedLevel}
         operationMode={selectedMode}
         gameMode={gameMode}
-        availableClasses={availableClasses}
         initialTurma={effectiveInitialTurma}
         initialProfile={playerProfile}
         initialP2Profile={p2Profile}

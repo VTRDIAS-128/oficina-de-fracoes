@@ -20,13 +20,16 @@ import {
   deleteClass,
   fetchAllRecords,
   fetchClasses,
+  getDefaultShareBaseUrl,
   getExportCsvUrl,
+  getShareBaseUrl,
+  setShareBaseUrl,
 } from '../game/recordsApi';
 import { AvatarBadge } from './Avatars';
 
 interface TeacherPanelProps {
   onClose: () => void;
-  onClassesUpdated: (classes: string[]) => void;
+  onClassesUpdated?: (classes: string[]) => void;
   onTestAsStudent: (turma: string, suggestedLevel?: DifficultyLevel) => void;
 }
 
@@ -40,6 +43,7 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
 
   const [newClassName, setNewClassName] = useState('');
   const [shareLevel, setShareLevel] = useState<DifficultyLevel | undefined>(undefined);
+  const [shareBaseUrlInput, setShareBaseUrlInput] = useState<string>(() => getShareBaseUrl());
   const [copiedTurma, setCopiedTurma] = useState<string | null>(null);
   const [confirmDeleteTurma, setConfirmDeleteTurma] = useState<string | null>(null);
   const [deleteClassRecords, setDeleteClassRecords] = useState(false);
@@ -47,7 +51,7 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
   useEffect(() => {
     fetchClasses().then((list) => {
       setClasses(list);
-      onClassesUpdated(list);
+      onClassesUpdated?.(list);
     });
   }, [onClassesUpdated]);
 
@@ -71,14 +75,14 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
     if (!clean) return;
     const updated = await addClass(clean);
     setClasses(updated);
-    onClassesUpdated(updated);
+    onClassesUpdated?.(updated);
     setNewClassName('');
   };
 
   const handleConfirmDeleteClass = async (cls: string) => {
     const updated = await deleteClass(cls, deleteClassRecords);
     setClasses(updated);
-    onClassesUpdated(updated);
+    onClassesUpdated?.(updated);
     if (selectedTurma.toLowerCase() === cls.toLowerCase()) {
       setSelectedTurma('all');
     } else if (deleteClassRecords) {
@@ -89,7 +93,7 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
   };
 
   const handleCopyLink = async (turma: string) => {
-    const link = buildTurmaShareUrl(turma, shareLevel);
+    const link = buildTurmaShareUrl(turma, shareLevel, shareBaseUrlInput);
     try {
       await navigator.clipboard.writeText(link);
       setCopiedTurma(turma);
@@ -313,7 +317,7 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
                   maxLength={40}
-                  placeholder="Nova turma (ex.: 6.º D)"
+                  placeholder="Nova turma (ex.: 6º 12ª)"
                   className="flex-1 min-w-[200px] px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
                 />
                 <button
@@ -324,6 +328,37 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
                   <span>Adicionar Turma</span>
                 </button>
               </form>
+
+              {/* Share Base URL (Shared App URL vs Dev URL) */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="share-base-url" className="text-xs font-semibold text-slate-200">
+                    Endereço público do jogo (link do botão Share / Partilhar)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const reset = setShareBaseUrl('');
+                      setShareBaseUrlInput(reset);
+                    }}
+                    className="text-[11px] font-semibold text-sky-300 hover:text-white cursor-pointer"
+                  >
+                    Repor automático
+                  </button>
+                </div>
+                <input
+                  id="share-base-url"
+                  type="url"
+                  value={shareBaseUrlInput}
+                  onChange={(e) => setShareBaseUrlInput(e.target.value)}
+                  onBlur={() => setShareBaseUrlInput(setShareBaseUrl(shareBaseUrlInput))}
+                  placeholder={getDefaultShareBaseUrl()}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950/80 border border-slate-700 text-xs font-mono text-slate-200 focus:outline-none focus:border-sky-400"
+                />
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Os links para o Google Classroom usam automaticamente o endereço de partilha (<code>ais-pre-...</code>) em vez do endereço de desenvolvimento (<code>ais-dev-...</code>). No menu <strong>Share</strong> do AI Studio, confirme que a partilha está definida como <strong>Public</strong> (ou com os e-mails autorizados).
+                </p>
+              </div>
 
               {/* Optional Default Level in Link */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
@@ -423,7 +458,7 @@ export function TeacherPanel({ onClose, onClassesUpdated, onTestAsStudent }: Tea
                         ) : (
                           <div className="flex flex-wrap items-center gap-2">
                             <a
-                              href={buildClassroomShareLink(cls, shareLevel)}
+                              href={buildClassroomShareLink(cls, shareLevel, shareBaseUrlInput)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-colors whitespace-nowrap"

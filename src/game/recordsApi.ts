@@ -23,7 +23,7 @@ export interface GameRecord extends GameRecordInput {
 const LOCAL_RECORDS_KEY = 'oficina_fracoes_records_v1';
 const LOCAL_CLASSES_KEY = 'oficina_fracoes_classes_v1';
 
-const DEFAULT_CLASSES = ['6.º A', '6.º B', '6.º C'];
+const DEFAULT_CLASSES = ['6º 8ª', '6º 9ª', '6º 10ª', '6º 11ª', '6º Ano'];
 
 function readLocalRecords(): GameRecord[] {
   try {
@@ -220,8 +220,57 @@ export async function deleteClass(name: string, deleteRecords = false): Promise<
   return next;
 }
 
-export function buildTurmaShareUrl(turma: string, level?: DifficultyLevel): string {
-  const url = new URL(window.location.origin);
+const SHARE_BASE_URL_KEY = 'oficina_fracoes_share_base_url_v1';
+
+export function getDefaultShareBaseUrl(): string {
+  const origin = window.location.origin;
+  if (/^https:\/\/ais-dev-/.test(origin)) {
+    return origin.replace(/^https:\/\/ais-dev-/, 'https://ais-pre-');
+  }
+  return origin;
+}
+
+export function getShareBaseUrl(): string {
+  const fallback = getDefaultShareBaseUrl();
+  try {
+    const saved = localStorage.getItem(SHARE_BASE_URL_KEY)?.trim();
+    if (saved && /^https?:\/\//i.test(saved) && !/^https:\/\/ais-dev-/.test(saved)) {
+      return saved.replace(/\/+$/, '');
+    }
+  } catch {
+    // Ignore storage issues
+  }
+  return fallback;
+}
+
+export function setShareBaseUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim().replace(/\/+$/, '');
+  try {
+    if (!trimmed) {
+      localStorage.removeItem(SHARE_BASE_URL_KEY);
+      return getDefaultShareBaseUrl();
+    }
+    const parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const cleanOrigin = parsed.origin;
+    localStorage.setItem(SHARE_BASE_URL_KEY, cleanOrigin);
+    return cleanOrigin;
+  } catch {
+    return getShareBaseUrl();
+  }
+}
+
+export function buildTurmaShareUrl(
+  turma: string,
+  level?: DifficultyLevel,
+  customBaseUrl?: string
+): string {
+  const base = (customBaseUrl || getShareBaseUrl()).trim();
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(base) ? base : `https://${base}`);
+  } catch {
+    url = new URL(getDefaultShareBaseUrl());
+  }
   url.searchParams.set('turma', turma);
   if (level) {
     url.searchParams.set('nivel', String(level));
@@ -229,8 +278,12 @@ export function buildTurmaShareUrl(turma: string, level?: DifficultyLevel): stri
   return url.toString();
 }
 
-export function buildClassroomShareLink(turma: string, level?: DifficultyLevel): string {
-  const gameUrl = buildTurmaShareUrl(turma, level);
+export function buildClassroomShareLink(
+  turma: string,
+  level?: DifficultyLevel,
+  customBaseUrl?: string
+): string {
+  const gameUrl = buildTurmaShareUrl(turma, level, customBaseUrl);
   const title = `Oficina das Frações — Turma ${turma}`;
   const classroom = new URL('https://classroom.google.com/share');
   classroom.searchParams.set('url', gameUrl);

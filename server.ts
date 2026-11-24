@@ -1,5 +1,6 @@
 import express from 'express';
 import fs from 'fs';
+import http from 'http';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
@@ -27,7 +28,7 @@ interface DataStore {
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const DATA_FILE = path.join(DATA_DIR, 'records.json');
-const DEFAULT_CLASSES = ['6.º A', '6.º B', '6.º C'];
+const DEFAULT_CLASSES = ['6º 8ª', '6º 9ª', '6º 10ª', '6º 11ª', '6º Ano'];
 
 function readStore(): DataStore {
   try {
@@ -70,7 +71,8 @@ function sanitizeCsvCell(value: string | number): string {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const httpServer = http.createServer(app);
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: '64kb' }));
 
@@ -259,8 +261,56 @@ async function startServer() {
   });
 
   if (process.env.NODE_ENV !== 'production') {
+    const hmrDisabled = process.env.DISABLE_HMR === 'true';
+    if (hmrDisabled) {
+      app.get('/@vite/client', (_req, res) => {
+        res.type('application/javascript').send(`
+const sheetsMap = new Map();
+export function updateStyle(id, content) {
+  let style = sheetsMap.get(id);
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('data-vite-dev-id', id);
+    style.textContent = content;
+    document.head.appendChild(style);
+    sheetsMap.set(id, style);
+  } else if (style.textContent !== content) {
+    style.textContent = content;
+  }
+}
+export function removeStyle(id) {
+  const style = sheetsMap.get(id);
+  if (style) {
+    style.remove();
+    sheetsMap.delete(id);
+  }
+}
+export function createHotContext() {
+  return {
+    data: {},
+    accept() {},
+    acceptExports() {},
+    dispose() {},
+    prune() {},
+    decline() {},
+    invalidate() {},
+    on() {},
+    off() {},
+    send() {},
+  };
+}
+export function injectQuery(url) { return url; }
+export class ErrorOverlay extends HTMLElement {}
+`);
+      });
+    }
+
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        ...(hmrDisabled ? { hmr: false, ws: false } : { ws: { server: httpServer } }),
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -272,7 +322,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on http://0.0.0.0:${PORT}`);
   });
 }

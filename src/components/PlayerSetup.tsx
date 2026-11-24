@@ -19,7 +19,6 @@ interface PlayerSetupProps {
   level: DifficultyLevel;
   operationMode: OperationMode;
   gameMode: GameMode;
-  availableClasses: string[];
   initialTurma: string;
   initialProfile: PlayerProfile | null;
   initialP2Profile: PlayerProfile | null;
@@ -31,7 +30,6 @@ export function PlayerSetup({
   level,
   operationMode,
   gameMode,
-  availableClasses,
   initialTurma,
   initialProfile,
   initialP2Profile,
@@ -44,14 +42,7 @@ export function PlayerSetup({
   const [name2, setName2] = useState(initialP2Profile?.name ?? '');
   const [avatar2, setAvatar2] = useState<AvatarId>(initialP2Profile?.avatarId ?? 'aguia');
 
-  const defaultTurma = initialTurma || initialProfile?.turma || availableClasses[0] || '6.º A';
-  const [turma, setTurma] = useState(defaultTurma);
-  const [customTurma, setCustomTurma] = useState('');
-  const [useCustomTurma, setUseCustomTurma] = useState(
-    Boolean(defaultTurma && !availableClasses.includes(defaultTurma))
-  );
-
-  const effectiveTurma = (useCustomTurma ? customTurma : turma).trim() || '6.º A';
+  const assignedTurma = initialTurma.trim() || '6º Ano';
   const isDuel = gameMode === 'duel';
 
   const isP1Valid = name1.trim().length >= 2;
@@ -75,13 +66,13 @@ export function PlayerSetup({
     const p1: PlayerProfile = {
       name: name1.trim(),
       avatarId: avatar1,
-      turma: effectiveTurma,
+      turma: assignedTurma,
     };
     if (isDuel) {
       const p2: PlayerProfile = {
         name: name2.trim(),
         avatarId: avatar2,
-        turma: effectiveTurma,
+        turma: assignedTurma,
       };
       onConfirm(p1, p2);
     } else {
@@ -122,63 +113,9 @@ export function PlayerSetup({
           </h1>
           <p className="text-sm text-slate-300 mt-1">
             {isDuel
-              ? 'Escrevam os vossos nomes, escolham a turma e um logótipo para começar o duelo.'
-              : 'Escreve o teu nome, indica a tua turma e escolhe um logótipo para aceder ao jogo.'}
+              ? 'Escrevam os vossos nomes e escolham um logótipo para começar o duelo.'
+              : 'Escreve o teu nome e escolhe um logótipo para aceder ao jogo.'}
           </p>
-        </div>
-
-        {/* Turma Selection */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-300">
-            Turma
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            {availableClasses.map((cls) => {
-              const active = !useCustomTurma && turma === cls;
-              return (
-                <button
-                  key={cls}
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playTap();
-                    setUseCustomTurma(false);
-                    setTurma(cls);
-                  }}
-                  className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                    active
-                      ? 'bg-sky-500 text-slate-950 border-sky-400'
-                      : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-slate-500'
-                  }`}
-                >
-                  {cls}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                soundEngine.playTap();
-                setUseCustomTurma(true);
-              }}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
-                useCustomTurma
-                  ? 'bg-amber-400 text-slate-950 border-amber-300'
-                  : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-slate-500'
-              }`}
-            >
-              Outra turma
-            </button>
-          </div>
-          {useCustomTurma && (
-            <input
-              type="text"
-              value={customTurma}
-              onChange={(e) => setCustomTurma(e.target.value)}
-              maxLength={40}
-              placeholder="Ex.: 6.º D"
-              className="mt-1 w-full sm:w-64 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400"
-            />
-          )}
         </div>
 
         {/* Player 1 & Optional Player 2 Fields */}
